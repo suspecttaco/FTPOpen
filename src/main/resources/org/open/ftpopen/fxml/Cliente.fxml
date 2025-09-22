@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<VBox xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.open.ftpopen.ClienteController">
+    <children>
+        <Label text="Cliente FTP">
+            <font>
+                <Font size="18.0" />
+            </font>
+            <VBox.margin>
+                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+            </VBox.margin>
+        </Label>
+
+        <!-- Conexión -->
+        <TitledPane text="Conexión" VBox.vgrow="NEVER">
+            <content>
+                <GridPane hgap="10.0" vgap="10.0">
+                    <columnConstraints>
+                        <ColumnConstraints hgrow="NEVER" minWidth="80.0" />
+                        <ColumnConstraints hgrow="ALWAYS" />
+                        <ColumnConstraints hgrow="NEVER" minWidth="80.0" />
+                        <ColumnConstraints hgrow="ALWAYS" />
+                    </columnConstraints>
+                    <rowConstraints>
+                        <RowConstraints />
+                        <RowConstraints />
+                    </rowConstraints>
+                    <children>
+                        <Label text="Host:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                        <TextField fx:id="txtHost" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+                        <Label text="Puerto:" GridPane.columnIndex="2" GridPane.rowIndex="0" />
+                        <TextField fx:id="txtPuerto" prefWidth="80.0" GridPane.columnIndex="3" GridPane.rowIndex="0" />
+                        <Label text="Usuario:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                        <TextField fx:id="txtUsuario" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                        <Label text="Password:" GridPane.columnIndex="2" GridPane.rowIndex="1" />
+                        <PasswordField fx:id="txtPassword" GridPane.columnIndex="3" GridPane.rowIndex="1" />
+                    </children>
+                    <padding>
+                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                    </padding>
+                </GridPane>
+            </content>
+        </TitledPane>
+
+        <HBox spacing="10.0">
+            <children>
+                <Button fx:id="btnConectar" mnemonicParsing="false" onAction="#conectar" text="Conectar" />
+                <Button fx:id="btnDesconectar" mnemonicParsing="false" onAction="#desconectar" text="Desconectar" />
+            </children>
+            <VBox.margin>
+                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+            </VBox.margin>
+        </HBox>
+
+        <!-- Archivos -->
+        <HBox VBox.vgrow="ALWAYS">
+            <children>
+                <VBox HBox.hgrow="ALWAYS">
+                    <children>
+                        <Label text="Archivos en el servidor:">
+                            <VBox.margin>
+                                <Insets bottom="5.0" />
+                            </VBox.margin>
+                        </Label>
+                        <ListView fx:id="listArchivos" VBox.vgrow="ALWAYS" />
+                        <HBox spacing="5.0">
+                            <children>
+                                <Button fx:id="btnDescargar" mnemonicParsing="false" onAction="#descargarArchivo" text="Descargar" />
+                                <Button fx:id="btnSubir" mnemonicParsing="false" onAction="#subirArchivo" text="Subir" />
+                                <Button fx:id="btnEliminar" mnemonicParsing="false" onAction="#eliminarArchivo" text="Eliminar" />
+                                <Button mnemonicParsing="false" onAction="#refrescarLista" text="Refrescar" />
+                  
+                          <!-- Solo label de progreso -->
+                          <VBox alignment="CENTER" HBox.hgrow="ALWAYS">
+                              <children>
+                                  <Label fx:id="lblProgreso" text="" />
+                              </children>
+                          </VBox>
+                            </children>
+                            <VBox.margin>
+                                <Insets top="5.0" />
+                            </VBox.margin>
+                        </HBox>
+                    </children>
+                </VBox>
+            </children>
+            <VBox.margin>
+                <Insets left="10.0" right="10.0" />
+            </VBox.margin>
+        </HBox>
+
+        <!-- Carpeta destino -->
+        <VBox>
+            <children>
+                <HBox alignment="CENTER_LEFT" spacing="10.0">
+                    <children>
+                        <Button fx:id="btnSeleccionarCarpeta" mnemonicParsing="false" onAction="#seleccionarCarpetaDestino" text="Seleccionar Carpeta" />
+                        <Label fx:id="lblCarpetaDestino" text="Destino: " />
+                    </children>
+                </HBox>
+            </children>
+            <VBox.margin>
+                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+            </VBox.margin>
+        </VBox>
+
+        <!-- Log de actividad -->
+        <VBox>
+            <children>
+                <Label text="Log de actividad:" />
+                <TextArea fx:id="txtLog" editable="false" prefHeight="100.0" wrapText="true" />
+            </children>
+            <VBox.margin>
+                <Insets bottom="10.0" left="10.0" right="10.0" top="5.0" />
+            </VBox.margin>
+        </VBox>
+    </children>
+</VBox>

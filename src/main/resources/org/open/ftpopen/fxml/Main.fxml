@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<VBox xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.open.ftpopen.MainController">
+    <children>
+        <Label text="Aplicación FTP Cliente-Servidor">
+            <font>
+                <Font size="20.0" />
+            </font>
+            <VBox.margin>
+                <Insets bottom="20.0" left="10.0" right="10.0" top="20.0" />
+            </VBox.margin>
+        </Label>
+        <VBox spacing="15.0">
+            <children>
+                <Button fx:id="btnCliente" mnemonicParsing="false" onAction="#abrirCliente" prefHeight="40.0" prefWidth="200.0" text="Abrir Cliente FTP" />
+                <Button fx:id="btnServidor" mnemonicParsing="false" onAction="#abrirServidor" prefHeight="40.0" prefWidth="200.0" text="Abrir Servidor FTP" />
+                <Button fx:id="btnAmbos" mnemonicParsing="false" onAction="#abrirAmbos" prefHeight="40.0" prefWidth="200.0" text="Abrir Ambos" />
+            </children>
+            <VBox.margin>
+                <Insets left="100.0" right="100.0" />
+            </VBox.margin>
+        </VBox>
+    </children>
+</VBox>

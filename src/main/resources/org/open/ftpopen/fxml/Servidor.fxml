@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<VBox xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.open.ftpopen.ServidorController">
+    <children>
+        <Label text="Servidor FTP">
+            <font>
+                <Font size="18.0" />
+            </font>
+            <VBox.margin>
+                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+            </VBox.margin>
+        </Label>
+
+        <!-- Configuración -->
+        <TitledPane text="Configuración del Servidor">
+            <content>
+                <GridPane hgap="10.0" vgap="10.0">
+                    <columnConstraints>
+                        <ColumnConstraints hgrow="NEVER" minWidth="80.0" />
+                        <ColumnConstraints hgrow="ALWAYS" />
+                    </columnConstraints>
+                    <rowConstraints>
+                        <RowConstraints />
+                        <RowConstraints />
+                        <RowConstraints />
+                    </rowConstraints>
+                    <children>
+                        <Label text="Puerto:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                        <TextField fx:id="txtPuerto" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+                        <Label text="Usuario:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                        <TextField fx:id="txtUsuario" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                        <Label text="Password:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                        <PasswordField fx:id="txtPassword" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                    </children>
+                    <padding>
+                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                    </padding>
+                </GridPane>
+            </content>
+        </TitledPane>
+
+        <!-- Carpeta compartida -->
+        <VBox>
+            <children>
+                <HBox alignment="CENTER_LEFT" spacing="10.0">
+                    <children>
+                        <Button fx:id="btnSeleccionarCarpeta" mnemonicParsing="false" onAction="#seleccionarCarpetaServicio" text="Seleccionar Carpeta" />
+                        <Label text="Carpeta compartida:" />
+                    </children>
+                </HBox>
+                <Label fx:id="lblCarpetaServicio" text="Carpeta: " wrapText="true">
+                    <VBox.margin>
+                        <Insets left="10.0" top="5.0" />
+                    </VBox.margin>
+                </Label>
+            </children>
+            <VBox.margin>
+                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+            </VBox.margin>
+        </VBox>
+
+        <!-- Control del servidor -->
+        <HBox spacing="10.0">
+            <children>
+                <Button fx:id="btnIniciar" mnemonicParsing="false" onAction="#iniciarServidor" text="Iniciar Servidor" />
+                <Button fx:id="btnDetener" mnemonicParsing="false" onAction="#detenerServidor" text="Detener Servidor" />
+                <Label fx:id="lblEstado" text="Estado: Detenido" />
+            </children>
+            <VBox.margin>
+                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+            </VBox.margin>
+        </HBox>
+
+        <!-- Log -->
+        <VBox VBox.vgrow="ALWAYS">
+            <children>
+                <Label text="Log del servidor:" />
+                <TextArea fx:id="txtLog" editable="false" VBox.vgrow="ALWAYS" wrapText="true" />
+            </children>
+            <VBox.margin>
+                <Insets bottom="10.0" left="10.0" right="10.0" top="5.0" />
+            </VBox.margin>
+        </VBox>
+    </children>
+</VBox>
