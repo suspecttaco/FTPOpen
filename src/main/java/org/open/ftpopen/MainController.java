@@ -16,7 +16,7 @@ public class MainController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Cliente.fxml"));
             Stage stage = new Stage();
             stage.setTitle("Cliente FTP");
-            stage.setScene(new Scene(loader.load(), 800, 600));
+            stage.setScene(new Scene(loader.load()));
             stage.show();
         } catch (Exception e) {
             e.printStackTrace();
@@ -29,7 +29,7 @@ public class MainController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Servidor.fxml"));
             Stage stage = new Stage();
             stage.setTitle("Servidor FTP");
-            stage.setScene(new Scene(loader.load(), 600, 400));
+            stage.setScene(new Scene(loader.load()));
             stage.show();
         } catch (Exception e) {
             e.printStackTrace();

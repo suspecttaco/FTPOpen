@@ -8,7 +8,7 @@ public class MainApp extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Main.fxml"));
-        Scene scene = new Scene(loader.load(), 400, 300);
+        Scene scene = new Scene(loader.load());
         primaryStage.setTitle("FTP Cliente-Servidor");
         primaryStage.setScene(scene);
         primaryStage.show();
