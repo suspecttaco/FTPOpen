@@ -103,12 +103,22 @@
             </VBox.margin>
         </HBox>
 
+        <HBox spacing="10.0" alignment="CENTER_LEFT">
+            <children>
+                <Button fx:id="btnRetroceder" mnemonicParsing="false" onAction="#retroceder" text="⬅ Atrás" />
+                <Label fx:id="lblRutaActual" text="Ruta: /" style="-fx-font-weight: bold;" />
+            </children>
+            <VBox.margin>
+                <Insets bottom="5.0" left="10.0" right="10.0" top="5.0" />
+            </VBox.margin>
+        </HBox>
+
         <!-- Archivos -->
         <HBox VBox.vgrow="ALWAYS">
             <children>
                 <VBox HBox.hgrow="ALWAYS">
                     <children>
-                        <Label text="Archivos en el servidor:">
+                        <Label text="Archivos en el servidor (doble clic para entrar a carpetas):">
                             <VBox.margin>
                                 <Insets bottom="5.0" />
                             </VBox.margin>

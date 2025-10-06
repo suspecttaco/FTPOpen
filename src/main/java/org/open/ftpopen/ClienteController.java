@@ -16,6 +16,7 @@ import org.apache.commons.net.ftp.FTPFile;
 import java.io.*;
 import java.net.URL;
 import java.util.ResourceBundle;
+import java.util.Stack;
 
 public class ClienteController implements Initializable {
     @FXML private TextField txtHost;
@@ -32,10 +33,14 @@ public class ClienteController implements Initializable {
     @FXML private Label lblCarpetaDestino;
     @FXML private TextArea txtLog;
     @FXML private Label lblProgreso;
+    @FXML private Label lblRutaActual;
+    @FXML private Button btnRetroceder;
 
     private FTPClient ftpClient;
     private File carpetaDestino;
     private ObservableList<String> archivos = FXCollections.observableArrayList();
+    private String rutaActual = "/";
+    private Stack<String> historialRutas = new Stack<>();
 
     // Buffer optimizado para transferencias
     private static final int BUFFER_SIZE = 8192; // 8KB buffer para balance entre memoria y rendimiento
@@ -60,11 +65,25 @@ public class ClienteController implements Initializable {
         btnDescargar.setDisable(true);
         btnSubir.setDisable(true);
         btnEliminar.setDisable(true);
+        //BtnNavegacion
+        btnRetroceder.setDisable(true);
 
         // Inicializar label de progreso
         if (lblProgreso != null) {
             lblProgreso.setText("");
         }
+
+        // Inicializar label de ruta actual
+        if (lblRutaActual != null) {
+            lblRutaActual.setText("Ruta: /");
+        }
+
+        //Evento: Doble clic -> abrir carpeta
+        listArchivos.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                navegarACarpeta();
+            }
+        });
     }
 
     @FXML
@@ -88,6 +107,7 @@ public class ClienteController implements Initializable {
                 ftpClient.setDefaultTimeout(30000);
                 ftpClient.setConnectTimeout(30000);
                 ftpClient.setDataTimeout(30000);
+                ftpClient.setControlEncoding("UTF-8");
 
                 boolean login = ftpClient.login(usuario, password);
 
@@ -106,6 +126,11 @@ public class ClienteController implements Initializable {
                         btnSubir.setDisable(false);
                         btnEliminar.setDisable(false);
                         if (lblProgreso != null) lblProgreso.setText("");
+
+                        btnRetroceder.setDisable(false);
+
+                        rutaActual = "/";
+                        historialRutas.clear();
                         listarArchivos();
                     });
                 } else {
@@ -130,15 +155,26 @@ public class ClienteController implements Initializable {
     @FXML
     private void desconectar() {
         try {
-            ftpClient.disconnect();
-            txtLog.appendText("Desconectado\n");
-            btnConectar.setDisable(false);
-            btnDesconectar.setDisable(true);
-            btnDescargar.setDisable(true);
-            btnSubir.setDisable(true);
-            btnEliminar.setDisable(true);
-            archivos.clear();
-            if (lblProgreso != null) lblProgreso.setText("");
+            if (ftpClient.isConnected()) {
+                ftpClient.logout();
+                ftpClient.disconnect();
+                txtLog.appendText("Desconectado\n");
+                btnConectar.setDisable(false);
+                btnDesconectar.setDisable(true);
+                btnDescargar.setDisable(true);
+                btnSubir.setDisable(true);
+                btnEliminar.setDisable(true);
+
+                btnRetroceder.setDisable(true);
+                archivos.clear();
+                rutaActual = "/";
+                historialRutas.clear();
+
+                archivos.clear();
+                if (lblProgreso != null) lblProgreso.setText("");
+                if (lblRutaActual != null) lblRutaActual.setText("Ruta: /");
+            }
+
         } catch (IOException e) {
             txtLog.appendText("Error al desconectar: " + e.getMessage() + "\n");
         }
@@ -148,15 +184,23 @@ public class ClienteController implements Initializable {
         Task<Void> task = new Task<Void>() {
             @Override
             protected Void call() throws Exception {
-                FTPFile[] files = ftpClient.listFiles();
+                FTPFile[] files = ftpClient.listFiles(rutaActual); // obtener path
 
                 Platform.runLater(() -> {
                     archivos.clear();
                     for (FTPFile file : files) {
-                        String tipo = file.isDirectory() ? "[DIR] " : "[FILE] ";
+                        //ignorar . y ..
+                        if (file.getName().equals(".") || file.getName().equals("..")) {
+                            continue;
+                        }
+                        String tipo = file.isDirectory() ? "📁 " : "📄 "; // Cambiar los iconos
                         archivos.add(tipo + file.getName());
                     }
-                    txtLog.appendText("Lista de archivos actualizada\n");
+                    txtLog.appendText("Lista de archivos actualizada en: " + rutaActual + "\n"); // Actualizar mensaje
+                    // Agregar estas líneas:
+                    if (lblRutaActual != null) {
+                        lblRutaActual.setText("Ruta: " + rutaActual);
+                    }
                 });
 
                 return null;
@@ -167,61 +211,83 @@ public class ClienteController implements Initializable {
     }
 
     @FXML
-    private void descargarArchivo() {
+    private void navegarACarpeta() {
         String seleccionado = listArchivos.getSelectionModel().getSelectedItem();
         if (seleccionado == null) {
-            txtLog.appendText("Selecciona un archivo para descargar\n");
             return;
         }
 
-        if (seleccionado.startsWith("[DIR]")) {
-            txtLog.appendText("No se pueden descargar directorios\n");
+        if (!seleccionado.startsWith("📁")) {
+            txtLog.appendText("Selecciona una carpeta para navegar\n");
             return;
         }
 
-        String nombreArchivo = seleccionado.substring(7); // Remover "[FILE] "
+        String nombreCarpeta = seleccionado.substring(2).trim();
 
         Task<Void> task = new Task<Void>() {
             @Override
             protected Void call() throws Exception {
-                Platform.runLater(() -> {
-                    txtLog.appendText("Descargando " + nombreArchivo + "...\n");
-                    if (lblProgreso != null) lblProgreso.setText("Obteniendo información del archivo...");
-                });
+                historialRutas.push(rutaActual);
 
-                // Obtener el tamaño del archivo
-                FTPFile[] files = ftpClient.listFiles();
-                long fileSize = 0;
-                for (FTPFile file : files) {
-                    if (file.getName().equals(nombreArchivo)) {
-                        fileSize = file.getSize();
-                        break;
-                    }
+                if (rutaActual.equals("/")) {
+                    rutaActual = "/" + nombreCarpeta;
+                } else {
+                    rutaActual = rutaActual + "/" + nombreCarpeta;
                 }
 
-                final long totalSize = fileSize;
-                File archivoLocal = new File(carpetaDestino, nombreArchivo);
+                Platform.runLater(() -> {
+                    listarArchivos();
+                });
 
-                // Si el tamaño es desconocido, usar barra indeterminada
-                if (totalSize <= 0) {
+                return null;
+            }
+        };
+
+        new Thread(task).start();
+    }
+
+    @FXML
+    private void retroceder() {
+        if (historialRutas.isEmpty()) {
+            rutaActual = "/";
+        } else {
+            rutaActual = historialRutas.pop();
+        }
+        listarArchivos();
+    }
+
+    @FXML
+    private void descargarArchivo() {
+        String seleccionado = listArchivos.getSelectionModel().getSelectedItem();
+        if (seleccionado == null) {
+            txtLog.appendText("Selecciona un archivo o carpeta para descargar\n"); // Actualizar mensaje
+            return;
+        }
+
+        // Cambiar la verificación:
+        boolean esCarpeta = seleccionado.startsWith("📁");
+        String nombre = seleccionado.substring(2).trim(); // Cambiar de substring(7) a substring(2)
+        String rutaRemota = rutaActual.equals("/") ? "/" + nombre : rutaActual + "/" + nombre; // Nueva línea
+
+        Task<Void> task = new Task<Void>() {
+            @Override
+            protected Void call() throws Exception {
+                // Agregar esta nueva lógica:
+                if (esCarpeta) {
                     Platform.runLater(() -> {
-                        if (lblProgreso != null) lblProgreso.setText("Descargando (tamaño desconocido)...");
+                        txtLog.appendText("Descargando carpeta " + nombre + "...\n");
+                        if (lblProgreso != null) lblProgreso.setText("Descargando carpeta...");
                     });
 
-                    try (FileOutputStream fos = new FileOutputStream(archivoLocal)) {
-                        boolean success = ftpClient.retrieveFile(nombreArchivo, fos);
-                        Platform.runLater(() -> {
-                            if (success) {
-                                txtLog.appendText("Descarga completada: " + archivoLocal.getAbsolutePath() + "\n");
-                            } else {
-                                txtLog.appendText("Error en la descarga\n");
-                            }
-                            if (lblProgreso != null) lblProgreso.setText("");
-                        });
-                    }
+                    File carpetaLocal = new File(carpetaDestino, nombre);
+                    descargarCarpetaRecursiva(rutaRemota, carpetaLocal);
+
+                    Platform.runLater(() -> {
+                        txtLog.appendText("Carpeta descargada completamente: " + carpetaLocal.getAbsolutePath() + "\n");
+                        if (lblProgreso != null) lblProgreso.setText("");
+                    });
                 } else {
-                    // Descarga con progreso
-                    downloadWithProgress(nombreArchivo, archivoLocal, totalSize);
+                    descargarArchivoSimple(nombre, rutaRemota);
                 }
 
                 return null;
@@ -231,8 +297,80 @@ public class ClienteController implements Initializable {
         new Thread(task).start();
     }
 
-    private void downloadWithProgress(String nombreArchivo, File archivoLocal, long totalSize) throws IOException {
-        try (InputStream inputStream = ftpClient.retrieveFileStream(nombreArchivo);
+    private void descargarArchivoSimple(String nombreArchivo, String rutaRemota) throws IOException {
+        Platform.runLater(() -> {
+            txtLog.appendText("Descargando " + nombreArchivo + "...\n");
+            if (lblProgreso != null) lblProgreso.setText("Obteniendo información del archivo...");
+        });
+
+        // Obtener el tamaño del archivo
+        FTPFile[] files = ftpClient.listFiles(rutaActual); // Usar rutaActual en lugar de listFiles() sin parámetros
+        long fileSize = 0;
+        for (FTPFile file : files) {
+            if (file.getName().equals(nombreArchivo)) {
+                fileSize = file.getSize();
+                break;
+            }
+        }
+
+        final long totalSize = fileSize;
+        File archivoLocal = new File(carpetaDestino, nombreArchivo);
+
+        if (totalSize <= 0) {
+            Platform.runLater(() -> {
+                if (lblProgreso != null) lblProgreso.setText("Descargando (tamaño desconocido)...");
+            });
+
+            try (FileOutputStream fos = new FileOutputStream(archivoLocal)) {
+                boolean success = ftpClient.retrieveFile(rutaRemota, fos); // Usar rutaRemota en lugar de nombreArchivo
+                Platform.runLater(() -> {
+                    if (success) {
+                        txtLog.appendText("Descarga completada: " + archivoLocal.getAbsolutePath() + "\n");
+                    } else {
+                        txtLog.appendText("Error en la descarga\n");
+                    }
+                    if (lblProgreso != null) lblProgreso.setText("");
+                });
+            }
+        } else {
+            downloadWithProgress(rutaRemota, archivoLocal, totalSize); // Usar rutaRemota
+        }
+    }
+
+    private void descargarCarpetaRecursiva(String rutaRemota, File carpetaLocal) throws IOException {
+        if (!carpetaLocal.exists()) {
+            carpetaLocal.mkdirs();
+        }
+
+        FTPFile[] archivos = ftpClient.listFiles(rutaRemota);
+
+        for (FTPFile archivo : archivos) {
+            if (archivo.getName().equals(".") || archivo.getName().equals("..")) {
+                continue;
+            }
+
+            String rutaRemotaArchivo = rutaRemota + "/" + archivo.getName();
+            File archivoLocal = new File(carpetaLocal, archivo.getName());
+
+            if (archivo.isDirectory()) {
+                Platform.runLater(() -> {
+                    txtLog.appendText("  Entrando a carpeta: " + archivo.getName() + "\n");
+                });
+                descargarCarpetaRecursiva(rutaRemotaArchivo, archivoLocal);
+            } else {
+                Platform.runLater(() -> {
+                    txtLog.appendText("  Descargando: " + archivo.getName() + "\n");
+                });
+
+                try (FileOutputStream fos = new FileOutputStream(archivoLocal)) {
+                    ftpClient.retrieveFile(rutaRemotaArchivo, fos);
+                }
+            }
+        }
+    }
+
+    private void downloadWithProgress(String rutaRemota, File archivoLocal, long totalSize) throws IOException {
+        try (InputStream inputStream = ftpClient.retrieveFileStream(rutaRemota);
              FileOutputStream outputStream = new FileOutputStream(archivoLocal);
              BufferedInputStream bis = new BufferedInputStream(inputStream, BUFFER_SIZE);
              BufferedOutputStream bos = new BufferedOutputStream(outputStream, BUFFER_SIZE)) {
@@ -309,6 +447,28 @@ public class ClienteController implements Initializable {
 
     @FXML
     private void subirArchivo() {
+        // Mostrar diálogo para elegir entre archivo o carpeta
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Seleccionar tipo de subida");
+        alert.setHeaderText("¿Qué deseas subir?");
+        alert.setContentText("Elige una opción:");
+
+        ButtonType btnArchivo = new ButtonType("Archivo");
+        ButtonType btnCarpeta = new ButtonType("Carpeta");
+        ButtonType btnCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+        alert.getButtonTypes().setAll(btnArchivo, btnCarpeta, btnCancelar);
+
+        alert.showAndWait().ifPresent(tipo -> {
+            if (tipo == btnArchivo) {
+                subirArchivoSeleccionado();
+            } else if (tipo == btnCarpeta) {
+                subirCarpetaSeleccionada();
+            }
+        });
+    }
+
+    private void subirArchivoSeleccionado() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Seleccionar archivo para subir");
         File archivo = fileChooser.showOpenDialog(btnSubir.getScene().getWindow());
@@ -318,15 +478,21 @@ public class ClienteController implements Initializable {
                 @Override
                 protected Void call() throws Exception {
                     long totalSize = archivo.length();
+                    String rutaRemota = rutaActual.equals("/") ? "/" + archivo.getName() : rutaActual + "/" + archivo.getName();
 
                     Platform.runLater(() -> {
-                        txtLog.appendText("Subiendo " + archivo.getName() + "...\n");
+                        txtLog.appendText("Subiendo " + archivo.getName() + " a " + rutaActual + "...\n");
                         if (lblProgreso != null) {
                             lblProgreso.setText(String.format("Subiendo: 0 / %s", formatFileSize(totalSize)));
                         }
                     });
 
-                    uploadWithProgress(archivo, totalSize);
+                    uploadWithProgress(archivo, rutaRemota, totalSize);
+
+                    Platform.runLater(() -> {
+                        listarArchivos();
+                    });
+
                     return null;
                 }
             };
@@ -335,11 +501,114 @@ public class ClienteController implements Initializable {
         }
     }
 
-    private void uploadWithProgress(File archivo, long totalSize) throws IOException {
-        try (FileInputStream inputStream = new FileInputStream(archivo);
-             BufferedInputStream bis = new BufferedInputStream(inputStream, BUFFER_SIZE);
-             OutputStream outputStream = ftpClient.storeFileStream(archivo.getName());
-             BufferedOutputStream bos = new BufferedOutputStream(outputStream, BUFFER_SIZE)) {
+    private void subirCarpetaSeleccionada() {
+        DirectoryChooser directoryChooser = new DirectoryChooser();
+        directoryChooser.setTitle("Seleccionar carpeta para subir");
+        File carpeta = directoryChooser.showDialog(btnSubir.getScene().getWindow());
+
+        if (carpeta != null) {
+            Task<Void> task = new Task<Void>() {
+                @Override
+                protected Void call() throws Exception {
+                    Platform.runLater(() -> {
+                        txtLog.appendText("Subiendo carpeta " + carpeta.getName() + " a " + rutaActual + "...\n");
+                        if (lblProgreso != null) lblProgreso.setText("Subiendo carpeta...");
+                    });
+
+                    String rutaRemotaCarpeta = rutaActual.equals("/") ? "/" + carpeta.getName() : rutaActual + "/" + carpeta.getName();
+
+                    subirCarpetaRecursiva(carpeta, rutaRemotaCarpeta);
+
+                    Platform.runLater(() -> {
+                        txtLog.appendText("Carpeta subida completamente: " + carpeta.getName() + "\n");
+                        if (lblProgreso != null) lblProgreso.setText("");
+                        listarArchivos();
+                    });
+
+                    return null;
+                }
+            };
+
+            new Thread(task).start();
+        }
+    }
+
+    private void subirCarpetaRecursiva(File carpetaLocal, String rutaRemota) throws IOException {
+        // Crear carpeta en el servidor
+        boolean created = ftpClient.makeDirectory(rutaRemota);
+        if (!created) {
+            Platform.runLater(() -> {
+                txtLog.appendText("  La carpeta ya existe o no se pudo crear: " + rutaRemota + "\n");
+            });
+        }
+
+        File[] archivos = carpetaLocal.listFiles();
+        if (archivos == null) return;
+
+        for (File archivo : archivos) {
+            String rutaRemotaArchivo = rutaRemota + "/" + archivo.getName();
+
+            if (archivo.isDirectory()) {
+                Platform.runLater(() -> {
+                    txtLog.appendText("  Creando carpeta: " + archivo.getName() + "\n");
+                });
+                subirCarpetaRecursiva(archivo, rutaRemotaArchivo);
+            } else {
+                Platform.runLater(() -> {
+                    txtLog.appendText("  Subiendo: " + archivo.getName() + "\n");
+                });
+
+                try (FileInputStream fis = new FileInputStream(archivo);
+                     OutputStream os = ftpClient.storeFileStream(rutaRemotaArchivo)) {
+
+                    if (os == null) {
+                        Platform.runLater(() -> {
+                            txtLog.appendText("    Error: no se pudo abrir stream para " + archivo.getName() + "\n");
+                        });
+                        continue;
+                    }
+
+                    byte[] buffer = new byte[BUFFER_SIZE];
+                    int bytesRead;
+                    while ((bytesRead = fis.read(buffer)) != -1) {
+                        os.write(buffer, 0, bytesRead);
+                    }
+
+                    os.flush();
+                }
+
+                // Completar el comando para que el archivo se guarde correctamente
+                boolean success = ftpClient.completePendingCommand();
+                if (!success) {
+                    Platform.runLater(() -> {
+                        txtLog.appendText("    Advertencia: posible error al subir " + archivo.getName() + "\n");
+                    });
+                }
+            }
+        }
+    }
+
+    private void uploadWithProgress(File archivo, String rutaRemota, long totalSize) throws IOException {
+        OutputStream outputStream = null;
+        FileInputStream inputStream = null;
+        BufferedInputStream bis = null;
+        BufferedOutputStream bos = null;
+
+        try {
+            outputStream = ftpClient.storeFileStream(rutaRemota);
+
+            if (outputStream == null) {
+                Platform.runLater(() -> {
+                    txtLog.appendText("Error: No se pudo abrir el stream de subida. Código de respuesta: "
+                            + ftpClient.getReplyCode() + "\n");
+                    if (lblProgreso != null) lblProgreso.setText("Error al subir");
+                });
+                return;
+            }
+
+            inputStream = new FileInputStream(archivo);
+            bis = new BufferedInputStream(inputStream, BUFFER_SIZE);
+            bos = new BufferedOutputStream(outputStream, BUFFER_SIZE);
 
             byte[] buffer = new byte[BUFFER_SIZE];
             long totalBytesRead = 0;
@@ -351,7 +620,6 @@ public class ClienteController implements Initializable {
                 bos.write(buffer, 0, bytesRead);
                 totalBytesRead += bytesRead;
 
-                // Actualizar progreso
                 long currentTime = System.currentTimeMillis();
                 if (currentTime - lastUpdateTime >= PROGRESS_UPDATE_INTERVAL) {
                     final long finalTotalBytesRead = totalBytesRead;
@@ -374,36 +642,46 @@ public class ClienteController implements Initializable {
                 }
             }
 
-            // Completar la transferencia FTP
-            boolean success = ftpClient.completePendingCommand();
+            bos.flush();
 
-            Platform.runLater(() -> {
-                if (success) {
-                    txtLog.appendText("Subida completada: " + archivo.getName() + "\n");
-                    if (lblProgreso != null) {
-                        long elapsedSeconds = (System.currentTimeMillis() - startTime) / 1000;
-                        lblProgreso.setText(String.format("Completado: %s en %ds",
-                                formatFileSize(totalSize), elapsedSeconds));
-                    }
-                    listarArchivos();
-                } else {
-                    txtLog.appendText("Error en la subida\n");
-                    if (lblProgreso != null) lblProgreso.setText("Error en la subida");
-                }
-
-                // Limpiar el estado después de 3 segundos
-                new Thread(() -> {
-                    try {
-                        Thread.sleep(3000);
-                        Platform.runLater(() -> {
-                            if (lblProgreso != null) lblProgreso.setText("");
-                        });
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                }).start();
-            });
+        } finally {
+            // Cerrar streams en orden correcto
+            if (bos != null) {
+                try { bos.close(); } catch (IOException e) { }
+            }
+            if (bis != null) {
+                try { bis.close(); } catch (IOException e) { }
+            }
+            if (inputStream != null) {
+                try { inputStream.close(); } catch (IOException e) { }
+            }
         }
+
+        // Completar el comando DESPUÉS de cerrar los streams
+        boolean success = ftpClient.completePendingCommand();
+
+        Platform.runLater(() -> {
+            if (success) {
+                txtLog.appendText("Subida completada: " + archivo.getName() + "\n");
+                if (lblProgreso != null) {
+                    lblProgreso.setText("Completado");
+                }
+            } else {
+                txtLog.appendText("Error en la subida. Código: " + ftpClient.getReplyCode() + "\n");
+                if (lblProgreso != null) lblProgreso.setText("Error en la subida");
+            }
+
+            new Thread(() -> {
+                try {
+                    Thread.sleep(3000);
+                    Platform.runLater(() -> {
+                        if (lblProgreso != null) lblProgreso.setText("");
+                    });
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }).start();
+        });
     }
 
     private String formatFileSize(long bytes) {
@@ -421,7 +699,9 @@ public class ClienteController implements Initializable {
             return;
         }
 
-        String nombreArchivo = seleccionado.substring(seleccionado.startsWith("[DIR]") ? 6 : 7);
+        String nombreArchivo = seleccionado.substring(2).trim();
+        String rutaRemota = rutaActual.equals("/") ? "/" + nombreArchivo : rutaActual + "/" + nombreArchivo;
+
 
         Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
         confirmacion.setTitle("Confirmar eliminación");
@@ -433,10 +713,10 @@ public class ClienteController implements Initializable {
                 @Override
                 protected Void call() throws Exception {
                     boolean success;
-                    if (seleccionado.startsWith("[DIR]")) {
-                        success = ftpClient.removeDirectory(nombreArchivo);
+                    if (seleccionado.startsWith("📁")) {
+                        success = ftpClient.removeDirectory(rutaRemota);
                     } else {
-                        success = ftpClient.deleteFile(nombreArchivo);
+                        success = ftpClient.deleteFile(rutaRemota);
                     }
 
                     Platform.runLater(() -> {
