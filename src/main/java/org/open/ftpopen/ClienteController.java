@@ -19,22 +19,38 @@ import java.util.ResourceBundle;
 import java.util.Stack;
 
 public class ClienteController implements Initializable {
-    @FXML private TextField txtHost;
-    @FXML private TextField txtPuerto;
-    @FXML private TextField txtUsuario;
-    @FXML private PasswordField txtPassword;
-    @FXML private Button btnConectar;
-    @FXML private Button btnDesconectar;
-    @FXML private ListView<String> listArchivos;
-    @FXML private Button btnDescargar;
-    @FXML private Button btnSubir;
-    @FXML private Button btnEliminar;
-    @FXML private Button btnSeleccionarCarpeta;
-    @FXML private Label lblCarpetaDestino;
-    @FXML private TextArea txtLog;
-    @FXML private Label lblProgreso;
-    @FXML private Label lblRutaActual;
-    @FXML private Button btnRetroceder;
+    @FXML
+    private TextField txtHost;
+    @FXML
+    private TextField txtPuerto;
+    @FXML
+    private TextField txtUsuario;
+    @FXML
+    private PasswordField txtPassword;
+    @FXML
+    private Button btnConectar;
+    @FXML
+    private Button btnDesconectar;
+    @FXML
+    private ListView<String> listArchivos;
+    @FXML
+    private Button btnDescargar;
+    @FXML
+    private Button btnSubir;
+    @FXML
+    private Button btnEliminar;
+    @FXML
+    private Button btnSeleccionarCarpeta;
+    @FXML
+    private Label lblCarpetaDestino;
+    @FXML
+    private TextArea txtLog;
+    @FXML
+    private Label lblProgreso;
+    @FXML
+    private Label lblRutaActual;
+    @FXML
+    private Button btnRetroceder;
 
     private FTPClient ftpClient;
     private File carpetaDestino;
@@ -474,6 +490,17 @@ public class ClienteController implements Initializable {
         File archivo = fileChooser.showOpenDialog(btnSubir.getScene().getWindow());
 
         if (archivo != null) {
+            // Validar que sea un archivo y no una carpeta
+            if (archivo.isDirectory()) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Error de selección");
+                alert.setHeaderText("Tipo de elemento incorrecto");
+                alert.setContentText("Has seleccionado una carpeta. Por favor, usa la opción 'Carpeta' en el menú de subida.");
+                alert.showAndWait();
+                txtLog.appendText("Error: Se intentó subir una carpeta en modo archivo\n");
+                return;
+            }
+
             Task<Void> task = new Task<Void>() {
                 @Override
                 protected Void call() throws Exception {
@@ -507,6 +534,17 @@ public class ClienteController implements Initializable {
         File carpeta = directoryChooser.showDialog(btnSubir.getScene().getWindow());
 
         if (carpeta != null) {
+            // Validar que sea una carpeta y no un archivo
+            if (carpeta.isFile()) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Error de selección");
+                alert.setHeaderText("Tipo de elemento incorrecto");
+                alert.setContentText("Has seleccionado un archivo. Por favor, usa la opción 'Archivo' en el menú de subida.");
+                alert.showAndWait();
+                txtLog.appendText("Error: Se intentó subir un archivo en modo carpeta\n");
+                return;
+            }
+
             Task<Void> task = new Task<Void>() {
                 @Override
                 protected Void call() throws Exception {
@@ -647,13 +685,22 @@ public class ClienteController implements Initializable {
         } finally {
             // Cerrar streams en orden correcto
             if (bos != null) {
-                try { bos.close(); } catch (IOException e) { }
+                try {
+                    bos.close();
+                } catch (IOException e) {
+                }
             }
             if (bis != null) {
-                try { bis.close(); } catch (IOException e) { }
+                try {
+                    bis.close();
+                } catch (IOException e) {
+                }
             }
             if (inputStream != null) {
-                try { inputStream.close(); } catch (IOException e) { }
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                }
             }
         }
 
@@ -695,28 +742,40 @@ public class ClienteController implements Initializable {
     private void eliminarArchivo() {
         String seleccionado = listArchivos.getSelectionModel().getSelectedItem();
         if (seleccionado == null) {
-            txtLog.appendText("Selecciona un archivo para eliminar\n");
+            txtLog.appendText("Selecciona un archivo o carpeta para eliminar\n");
             return;
         }
 
         String nombreArchivo = seleccionado.substring(2).trim();
-        String rutaRemota = rutaActual.equals("/") ? "/" + nombreArchivo : rutaActual + "/" + nombreArchivo;
-
+        String rutaRemota = construirRutaRemota(nombreArchivo);
+        boolean esCarpeta = seleccionado.startsWith("📁");
 
         Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
         confirmacion.setTitle("Confirmar eliminación");
         confirmacion.setHeaderText("¿Estás seguro?");
-        confirmacion.setContentText("¿Deseas eliminar " + nombreArchivo + "?");
+
+        if (esCarpeta) {
+            confirmacion.setContentText("¿Deseas eliminar la carpeta " + nombreArchivo + " y TODO su contenido?");
+        } else {
+            confirmacion.setContentText("¿Deseas eliminar " + nombreArchivo + "?");
+        }
 
         if (confirmacion.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
             Task<Void> task = new Task<Void>() {
                 @Override
                 protected Void call() throws Exception {
                     boolean success;
-                    if (seleccionado.startsWith("📁")) {
-                        success = ftpClient.removeDirectory(rutaRemota);
+                    if (esCarpeta) {
+                        Platform.runLater(() -> {
+                            txtLog.appendText("Eliminando carpeta " + nombreArchivo + " y su contenido...\n");
+                            if (lblProgreso != null) lblProgreso.setText("Eliminando carpeta...");
+                        });
+                        success = eliminarCarpetaRecursiva(rutaRemota);
                     } else {
-                        success = ftpClient.deleteFile(rutaRemota);
+                        Platform.runLater(() -> {
+                            txtLog.appendText("Eliminando archivo: " + nombreArchivo + "\n");
+                        });
+                        success = eliminarArchivoConReintentos(rutaRemota);
                     }
 
                     Platform.runLater(() -> {
@@ -724,8 +783,10 @@ public class ClienteController implements Initializable {
                             txtLog.appendText("Eliminado: " + nombreArchivo + "\n");
                             listarArchivos();
                         } else {
-                            txtLog.appendText("Error al eliminar " + nombreArchivo + "\n");
+                            txtLog.appendText("Error al eliminar " + nombreArchivo + 
+                                ". Código de respuesta FTP: " + ftpClient.getReplyCode() + "\n");
                         }
+                        if (lblProgreso != null) lblProgreso.setText("");
                     });
 
                     return null;
@@ -734,6 +795,105 @@ public class ClienteController implements Initializable {
 
             new Thread(task).start();
         }
+    }
+
+    // Método auxiliar para construir rutas correctamente
+    private String construirRutaRemota(String nombre) {
+        if (rutaActual.equals("/")) {
+            return "/" + nombre;
+        } else {
+            return rutaActual + "/" + nombre;
+        }
+    }
+
+    // Método para eliminar archivo con reintentos y mejor manejo de codificación
+    private boolean eliminarArchivoConReintentos(String rutaRemota) throws IOException {
+        // Intentar eliminación normal
+        if (ftpClient.deleteFile(rutaRemota)) {
+            return true;
+        }
+        
+        // Si falla, intentar con codificación ISO-8859-1 (común en algunos servidores FTP)
+        String encodingOriginal = ftpClient.getControlEncoding();
+        try {
+            ftpClient.setControlEncoding("ISO-8859-1");
+            if (ftpClient.deleteFile(rutaRemota)) {
+                return true;
+            }
+        } finally {
+            ftpClient.setControlEncoding(encodingOriginal);
+        }
+        
+        return false;
+    }
+
+    private boolean eliminarCarpetaRecursiva(String rutaRemota) throws IOException {
+        // Listar todos los archivos y subcarpetas
+        FTPFile[] archivos = ftpClient.listFiles(rutaRemota);
+
+        if (archivos == null || archivos.length == 0) {
+            // Carpeta vacía, eliminar directamente
+            return eliminarDirectorioConReintentos(rutaRemota);
+        }
+
+        // Eliminar todo el contenido primero
+        for (FTPFile archivo : archivos) {
+            if (archivo.getName().equals(".") || archivo.getName().equals("..")) {
+                continue;
+            }
+
+            String rutaArchivoRemoto = rutaRemota + "/" + archivo.getName();
+
+            if (archivo.isDirectory()) {
+                Platform.runLater(() -> {
+                    txtLog.appendText("  Eliminando subcarpeta: " + archivo.getName() + "\n");
+                });
+                // Llamada recursiva para eliminar subcarpeta
+                if (!eliminarCarpetaRecursiva(rutaArchivoRemoto)) {
+                    Platform.runLater(() -> {
+                        txtLog.appendText("  Error al eliminar subcarpeta: " + archivo.getName() + 
+                            " (Código: " + ftpClient.getReplyCode() + ")\n");
+                    });
+                    return false;
+                }
+            } else {
+                Platform.runLater(() -> {
+                    txtLog.appendText("  Eliminando archivo: " + archivo.getName() + "\n");
+                });
+                // Eliminar archivo con reintentos
+                if (!eliminarArchivoConReintentos(rutaArchivoRemoto)) {
+                    Platform.runLater(() -> {
+                        txtLog.appendText("  Error al eliminar archivo: " + archivo.getName() + 
+                            " (Código: " + ftpClient.getReplyCode() + ")\n");
+                    });
+                    return false;
+                }
+            }
+        }
+
+        // Finalmente, eliminar la carpeta vacía
+        return eliminarDirectorioConReintentos(rutaRemota);
+    }
+
+    // Método para eliminar directorio con reintentos y mejor manejo de codificación
+    private boolean eliminarDirectorioConReintentos(String rutaRemota) throws IOException {
+        // Intentar eliminación normal
+        if (ftpClient.removeDirectory(rutaRemota)) {
+            return true;
+        }
+        
+        // Si falla, intentar con codificación ISO-8859-1
+        String encodingOriginal = ftpClient.getControlEncoding();
+        try {
+            ftpClient.setControlEncoding("ISO-8859-1");
+            if (ftpClient.removeDirectory(rutaRemota)) {
+                return true;
+            }
+        } finally {
+            ftpClient.setControlEncoding(encodingOriginal);
+        }
+        
+        return false;
     }
 
     @FXML
