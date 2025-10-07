@@ -62,7 +62,7 @@
                      <graphic>
                         <ImageView pickOnBounds="true" preserveRatio="true">
                            <image>
-                              <Image url="@img/conectar.png" />
+                              <Image url="@../img/conectar.png" />
                            </image>
                         </ImageView>
                      </graphic>
@@ -74,7 +74,7 @@
                      <graphic>
                         <ImageView pickOnBounds="true" preserveRatio="true">
                            <image>
-                              <Image url="@img/sin-conexion.png" />
+                              <Image url="@../img/sin-conexion.png" />
                            </image>
                         </ImageView>
                      </graphic>
@@ -90,7 +90,7 @@
                      <graphic>
                         <ImageView pickOnBounds="true" preserveRatio="true">
                            <image>
-                              <Image url="@img/carpeta-vacia.png" />
+                              <Image url="@../img/carpeta-vacia.png" />
                            </image>
                         </ImageView>
                      </graphic></Button>
@@ -130,7 +130,7 @@
                            <graphic>
                               <ImageView pickOnBounds="true" preserveRatio="true">
                                  <image>
-                                    <Image url="@img/descargar.png" />
+                                    <Image url="@../img/descargar.png" />
                                  </image>
                               </ImageView>
                            </graphic>
@@ -142,7 +142,7 @@
                            <graphic>
                               <ImageView pickOnBounds="true" preserveRatio="true">
                                  <image>
-                                    <Image url="@img/subir.png" />
+                                    <Image url="@../img/subir.png" />
                                  </image>
                               </ImageView>
                            </graphic>
@@ -154,7 +154,7 @@
                            <graphic>
                               <ImageView pickOnBounds="true" preserveRatio="true">
                                  <image>
-                                    <Image url="@img/eliminar.png" />
+                                    <Image url="@../img/eliminar.png" />
                                  </image>
                               </ImageView>
                            </graphic>
@@ -166,7 +166,7 @@
                            <graphic>
                               <ImageView pickOnBounds="true" preserveRatio="true">
                                  <image>
-                                    <Image url="@img/girar.png" />
+                                    <Image url="@../img/girar.png" />
                                  </image>
                               </ImageView>
                            </graphic>

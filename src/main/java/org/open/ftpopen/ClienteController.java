@@ -174,22 +174,23 @@ public class ClienteController implements Initializable {
             if (ftpClient.isConnected()) {
                 ftpClient.logout();
                 ftpClient.disconnect();
-                txtLog.appendText("Desconectado\n");
-                btnConectar.setDisable(false);
-                btnDesconectar.setDisable(true);
-                btnDescargar.setDisable(true);
-                btnSubir.setDisable(true);
-                btnEliminar.setDisable(true);
-
-                btnRetroceder.setDisable(true);
-                archivos.clear();
-                rutaActual = "/";
-                historialRutas.clear();
-
-                archivos.clear();
-                if (lblProgreso != null) lblProgreso.setText("");
-                if (lblRutaActual != null) lblRutaActual.setText("Ruta: /");
             }
+
+            txtLog.appendText("Desconectado\n");
+            btnConectar.setDisable(false);
+            btnDesconectar.setDisable(true);
+            btnDescargar.setDisable(true);
+            btnSubir.setDisable(true);
+            btnEliminar.setDisable(true);
+
+            btnRetroceder.setDisable(true);
+            archivos.clear();
+            rutaActual = "/";
+            historialRutas.clear();
+
+            archivos.clear();
+            if (lblProgreso != null) lblProgreso.setText("");
+            if (lblRutaActual != null) lblRutaActual.setText("Ruta: /");
 
         } catch (IOException e) {
             txtLog.appendText("Error al desconectar: " + e.getMessage() + "\n");
