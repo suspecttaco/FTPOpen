@@ -54,9 +54,9 @@ public class ClienteController implements Initializable {
 
     private FTPClient ftpClient;
     private File carpetaDestino;
-    private ObservableList<String> archivos = FXCollections.observableArrayList();
+    private final ObservableList<String> archivos = FXCollections.observableArrayList();
     private String rutaActual = "/";
-    private Stack<String> historialRutas = new Stack<>();
+    private final Stack<String> historialRutas = new Stack<>();
 
     // Buffer optimizado para transferencias
     private static final int BUFFER_SIZE = 8192; // 8KB buffer para balance entre memoria y rendimiento
@@ -170,31 +170,32 @@ public class ClienteController implements Initializable {
 
     @FXML
     private void desconectar() {
-        try {
-            if (ftpClient.isConnected()) {
+        if (ftpClient.isConnected()) {
+            try {
                 ftpClient.logout();
                 ftpClient.disconnect();
+            } catch (Exception e) {
+                txtLog.appendText("Error al desconectar: " + e.getMessage() + "\n");
+                txtLog.appendText("Desconectado forzosamente (Advertencia: El socket podria seguir en uso)\n");
             }
-
-            txtLog.appendText("Desconectado\n");
-            btnConectar.setDisable(false);
-            btnDesconectar.setDisable(true);
-            btnDescargar.setDisable(true);
-            btnSubir.setDisable(true);
-            btnEliminar.setDisable(true);
-
-            btnRetroceder.setDisable(true);
-            archivos.clear();
-            rutaActual = "/";
-            historialRutas.clear();
-
-            archivos.clear();
-            if (lblProgreso != null) lblProgreso.setText("");
-            if (lblRutaActual != null) lblRutaActual.setText("Ruta: /");
-
-        } catch (IOException e) {
-            txtLog.appendText("Error al desconectar: " + e.getMessage() + "\n");
         }
+
+        txtLog.appendText("Desconectado\n");
+        btnConectar.setDisable(false);
+        btnDesconectar.setDisable(true);
+        btnDescargar.setDisable(true);
+        btnSubir.setDisable(true);
+        btnEliminar.setDisable(true);
+
+        btnRetroceder.setDisable(true);
+        archivos.clear();
+        rutaActual = "/";
+        historialRutas.clear();
+
+        archivos.clear();
+        if (lblProgreso != null) lblProgreso.setText("");
+        if (lblRutaActual != null) lblRutaActual.setText("Ruta: /");
+
     }
 
     private void listarArchivos() {
