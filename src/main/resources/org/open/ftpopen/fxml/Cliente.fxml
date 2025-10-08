@@ -1,27 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ListView?>
-<?import javafx.scene.control.PasswordField?>
-<?import javafx.scene.control.TextArea?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.control.TitledPane?>
-<?import javafx.scene.control.Tooltip?>
-<?import javafx.scene.image.Image?>
-<?import javafx.scene.image.ImageView?>
-<?import javafx.scene.layout.ColumnConstraints?>
-<?import javafx.scene.layout.GridPane?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.RowConstraints?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
 
-<VBox prefWidth="550.0" xmlns="http://javafx.com/javafx/24.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.open.ftpopen.ClienteController">
+<VBox prefWidth="550.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.open.ftpopen.ClienteController">
     <children>
 
         <!-- Conexión -->
-        <TitledPane text="Conexión" VBox.vgrow="NEVER">
+        <TitledPane collapsible="false" text="Conexión" VBox.vgrow="NEVER">
             <content>
                 <GridPane hgap="10.0" vgap="10.0">
                     <columnConstraints>
@@ -103,10 +91,10 @@
             </VBox.margin>
         </HBox>
 
-        <HBox spacing="10.0" alignment="CENTER_LEFT">
+        <HBox alignment="CENTER_LEFT" spacing="10.0">
             <children>
                 <Button fx:id="btnRetroceder" mnemonicParsing="false" onAction="#retroceder" text="⬅ Atrás" />
-                <Label fx:id="lblRutaActual" text="Ruta: /" style="-fx-font-weight: bold;" />
+                <Label fx:id="lblRutaActual" style="-fx-font-weight: bold;" text="Ruta: /" />
             </children>
             <VBox.margin>
                 <Insets bottom="5.0" left="10.0" right="10.0" top="5.0" />
